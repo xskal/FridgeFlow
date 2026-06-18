@@ -436,8 +436,9 @@ def analytics(request):
         template='plotly_white',
         height=400
     )
-    expenses_graph = op.plot(expenses_fig, output_type='div', include_plotlyjs=False)
     
+    expenses_graph = op.plot(expenses_fig, output_type='div', include_plotlyjs='cdn')
+   
     # === 2. КБЖУ ЗА НЕДЕЛЮ ===
     # Получаем план питания на текущую неделю
     start_of_week = today - timedelta(days=today.weekday())
@@ -480,8 +481,7 @@ def analytics(request):
         template='plotly_white',
         height=400
     )
-    macros_graph = op.plot(macros_fig, output_type='div', include_plotlyjs=False)
-    
+    macros_graph = op.plot(macros_fig, output_type='div', include_plotlyjs='cdn')
     # === 3. ТОП ПРОДУКТОВ ПО СТОИМОСТИ ===
     # Получаем все купленные продукты
     purchased_items = ShoppingListItem.objects.filter(
@@ -524,7 +524,7 @@ def analytics(request):
         height=500,
         yaxis={'autorange': 'reversed'}
     )
-    top_graph = op.plot(top_fig, output_type='div', include_plotlyjs=False)
+    top_graph = op.plot(top_fig, output_type='div', include_plotlyjs='cdn')     
     
     # === 4. ОБЩАЯ СТАТИСТИКА ===
     total_spent = sum(
