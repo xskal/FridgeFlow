@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест</title>
+</head>
+<body>
+    <h1>Шаблоны работают!</h1>
+    <p>Рецептов: {{ recipes|length }}</p>
+    {% for recipe in recipes %}
+        <div>{{ recipe.name }}</div>
+    {% endfor %}
+</body>
+</html>
