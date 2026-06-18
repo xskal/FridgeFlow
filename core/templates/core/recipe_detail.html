@@ -1,0 +1,48 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ recipe.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h1>{{ recipe.name }}</h1>
+        <p class="lead">{{ recipe.description }}</p>
+        
+        <div class="bg-light p-4 rounded mb-4">
+            <h4>👨‍🍳 Инструкция:</h4>
+            <p style="white-space: pre-line">{{ recipe.instructions }}</p>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5>Информация</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li><strong>⏱️ Время:</strong> {{ recipe.cooking_time }} мин</li>
+                    <li><strong>🍽️ Порций:</strong> {{ recipe.servings }}</li>
+                    <li><strong>📈 Сложность:</strong> {{ recipe.get_difficulty_display }}</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header bg-success text-white">
+                <h5>🛒 Ингредиенты</h5>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for item in recipe.ingredients.all %}
+                <li class="list-group-item d-flex justify-content-between">
+                    {{ item.ingredient.name }}
+                    <span class="badge bg-primary">{{ item.quantity }} {{ item.ingredient.unit }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<a href="{% url 'core:recipe_list' %}" class="btn btn-secondary mt-3">← Назад</a>
+{% endblock %}

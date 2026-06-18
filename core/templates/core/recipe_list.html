@@ -1,13 +1,31 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Тест</title>
-</head>
-<body>
-    <h1>Шаблоны работают!</h1>
-    <p>Рецептов: {{ recipes|length }}</p>
+{% extends 'core/base.html' %}
+
+{% block title %}Каталог рецептов{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">🍳 Каталог рецептов</h1>
+
+<div class="row">
     {% for recipe in recipes %}
-        <div>{{ recipe.name }}</div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">{{ recipe.name }}</h5>
+                <p class="card-text text-muted">{{ recipe.description|truncatewords:15 }}</p>
+                <div class="d-flex justify-content-between">
+                    <span class="badge bg-info">{{ recipe.get_difficulty_display }}</span>
+                    <span class="text-muted">⏱️ {{ recipe.cooking_time }} мин</span>
+                </div>
+            </div>
+            <div class="card-footer bg-white">
+                <a href="{% url 'core:recipe_detail' recipe.pk %}" class="btn btn-primary w-100">Подробнее</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info">Рецепты пока не добавлены</div>
+    </div>
     {% endfor %}
-</body>
-</html>
+</div>
+{% endblock %}
