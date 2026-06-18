@@ -1,10 +1,8 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
-from .models import PantryItem, Ingredient
 from datetime import date, timedelta
-from .models import ShoppingListItem
-from .models import MealPlan
+from .models import Ingredient, PantryItem, ShoppingListItem, Recipe, MealPlan
 
 
 class CustomUserCreationForm(UserCreationForm):
