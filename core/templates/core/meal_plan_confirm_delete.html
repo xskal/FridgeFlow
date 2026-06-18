@@ -1,0 +1,25 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Удалить из плана - FridgeFlow{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">🗑️ Удалить из плана</h4>
+            </div>
+            <div class="card-body">
+                <p>Удалить <strong>{{ item.recipe.name }}</strong> из плана на {{ item.date }}?</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger">Удалить</button>
+                        <a href="{% url 'core:meal_plan' %}" class="btn btn-secondary">Отмена</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

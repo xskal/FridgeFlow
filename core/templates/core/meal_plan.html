@@ -1,0 +1,110 @@
+{% extends 'core/base.html' %}
+
+{% block title %}План питания - FridgeFlow{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>📅 План питания на неделю</h1>
+    <div class="d-flex gap-2">
+        <a href="{% url 'core:meal_plan_add' %}" class="btn btn-primary">➕ Добавить блюдо</a>
+        <form method="post" action="{% url 'core:meal_plan_generate_shopping' %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">🛒 В список покупок</button>
+        </form>
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <strong>Период:</strong> {{ start_date|date:"d.m.Y" }} - {{ end_date|date:"d.m.Y" }}
+    <br>
+    <strong>Примерная стоимость:</strong> {{ total_cost|floatformat:0 }} ₽
+</div>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-hover">
+        <thead class="table-primary">
+            <tr>
+                <th>День</th>
+                <th>Завтрак</th>
+                <th>Обед</th>
+                <th>Ужин</th>
+                <th>Перекус</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for day in days %}
+            <tr>
+                <td class="bg-light">
+                    <strong>{{ day.day_name }}</strong><br>
+                    <small class="text-muted">{{ day.date|date:"d.m.Y" }}</small>
+                </td>
+                <td>
+                    {% if day.breakfast %}
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ day.breakfast.recipe.name }}</strong><br>
+                            <small>{{ day.breakfast.servings_planned }} порц.</small>
+                        </div>
+                        <form method="post" action="{% url 'core:meal_plan_delete' day.breakfast.pk %}" style="display:inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">×</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if day.lunch %}
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ day.lunch.recipe.name }}</strong><br>
+                            <small>{{ day.lunch.servings_planned }} порц.</small>
+                        </div>
+                        <form method="post" action="{% url 'core:meal_plan_delete' day.lunch.pk %}" style="display:inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">×</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if day.dinner %}
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ day.dinner.recipe.name }}</strong><br>
+                            <small>{{ day.dinner.servings_planned }} порц.</small>
+                        </div>
+                        <form method="post" action="{% url 'core:meal_plan_delete' day.dinner.pk %}" style="display:inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">×</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if day.snack %}
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ day.snack.recipe.name }}</strong><br>
+                            <small>{{ day.snack.servings_planned }} порц.</small>
+                        </div>
+                        <form method="post" action="{% url 'core:meal_plan_delete' day.snack.pk %}" style="display:inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">×</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from .models import PantryItem, Ingredient
 from datetime import date, timedelta
 from .models import ShoppingListItem
+from .models import MealPlan
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -68,3 +69,29 @@ class ShoppingListItemForm(forms.ModelForm):
     class Meta:
         model = ShoppingListItem
         fields = ['ingredient', 'quantity']
+
+class MealPlanForm(forms.ModelForm):
+    """Форма планирования приёма пищи"""
+    recipe = forms.ModelChoiceField(
+        queryset=Recipe.objects.all(),
+        label='Блюдо',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    servings_planned = forms.IntegerField(
+        min_value=1,
+        max_value=20,
+        initial=1,
+        label='Количество порций',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '20'})
+    )
+    date = forms.DateField(
+        label='Дата',
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    
+    class Meta:
+        model = MealPlan
+        fields = ['date', 'meal_type', 'recipe', 'servings_planned']
+        widgets = {
+            'meal_type': forms.Select(attrs={'class': 'form-select'}),
+        }

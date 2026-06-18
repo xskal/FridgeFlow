@@ -1,0 +1,40 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ title }} - FridgeFlow{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">{{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Дата</label>
+                        {{ form.date }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Приём пищи</label>
+                        {{ form.meal_type }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Блюдо</label>
+                        {{ form.recipe }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Количество порций</label>
+                        {{ form.servings_planned }}
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Добавить</button>
+                        <a href="{% url 'core:meal_plan' %}" class="btn btn-secondary">Отмена</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

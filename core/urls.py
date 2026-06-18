@@ -23,4 +23,10 @@ urlpatterns = [
     path('shopping/delete/<int:pk>/', views.shopping_delete, name='shopping_delete'),
     path('shopping/generate/', views.shopping_generate, name='shopping_generate'),
     path('shopping/clear/', views.shopping_clear_purchased, name='shopping_clear_purchased'),
+
+    # Планирование питания
+    path('meal-plan/', views.meal_plan, name='meal_plan'),
+    path('meal-plan/add/', views.meal_plan_add, name='meal_plan_add'),
+    path('meal-plan/delete/<int:pk>/', views.meal_plan_delete, name='meal_plan_delete'),
+    path('meal-plan/generate/', views.meal_plan_generate_shopping, name='meal_plan_generate_shopping'),
 ]
