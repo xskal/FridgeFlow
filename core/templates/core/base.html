@@ -22,11 +22,19 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="{% url 'core:recipe_list' %}">Рецепты</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'core:recipe_list' %}">Рецепты</a>
+                    </li>
                     {% if user.is_authenticated %}
-                    <li class="nav-item"><a class="nav-link" href="#">План питания</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#">Холодильник</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#">Список покупок</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'core:pantry_list' %}">Холодильник</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">План питания</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'core:shopping_list' %}">Список покупок</a>
+                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             👤 {{ user.username }}
@@ -36,8 +44,12 @@
                         </ul>
                     </li>
                     {% else %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'core:login' %}">Вход</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'core:register' %}">Регистрация</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'core:login' %}">Вход</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'core:register' %}">Регистрация</a>
+                    </li>
                     {% endif %}
                 </ul>
             </div>

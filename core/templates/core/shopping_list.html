@@ -1,0 +1,95 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Список покупок - FridgeFlow{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>🛒 Список покупок</h1>
+    <div class="d-flex gap-2">
+        <a href="{% url 'core:shopping_add' %}" class="btn btn-success">➕ Добавить</a>
+        <form method="post" action="{% url 'core:shopping_generate' %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-warning">⚡ Из холодильника</button>
+        </form>
+    </div>
+</div>
+
+{% if total_items > 0 %}
+<div class="card mb-4">
+    <div class="card-body bg-light">
+        <div class="row text-center">
+            <div class="col-md-4">
+                <h3 class="text-primary">{{ total_items }}</h3>
+                <p class="text-muted">Продуктов к покупке</p>
+            </div>
+            <div class="col-md-4">
+                <h3 class="text-success">{{ total_cost|floatformat:0 }} ₽</h3>
+                <p class="text-muted">Примерная стоимость</p>
+            </div>
+            <div class="col-md-4">
+                <h3 class="text-info">{{ purchased.count }}</h3>
+                <p class="text-muted">Уже куплено</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if categories %}
+    {% for category, items in categories.items %}
+    <div class="card mb-3">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">📁 {{ category }} ({{ items|length }})</h5>
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for item in items %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>{{ item.ingredient.name }}</strong>
+                    <span class="text-muted ms-2">{{ item.quantity }} {{ item.ingredient.get_unit_display }}</span>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <span class="text-muted small">{{ item.ingredient.price_per_unit|floatformat:0 }} ₽/{{ item.ingredient.get_unit_display }}</span>
+                    <form method="post" action="{% url 'core:shopping_toggle' item.pk %}" style="display:inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-success" title="Отметить купленным">✅</button>
+                    </form>
+                    <form method="post" action="{% url 'core:shopping_delete' item.pk %}" style="display:inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить">🗑️</button>
+                    </form>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="alert alert-success text-center">
+        <p class="mb-0">🎉 Список покупок пуст! Всё куплено или ещё не запланировано.</p>
+    </div>
+{% endif %}
+
+{% if purchased %}
+<div class="card mt-4 border-success">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">✅ Уже куплено ({{ purchased.count }})</h5>
+        <form method="post" action="{% url 'core:shopping_clear_purchased' %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-light">Очистить</button>
+        </form>
+    </div>
+    <ul class="list-group list-group-flush">
+        {% for item in purchased %}
+        <li class="list-group-item d-flex justify-content-between align-items-center text-decoration-line-through text-muted">
+            <span>{{ item.ingredient.name }} — {{ item.quantity }} {{ item.ingredient.get_unit_display }}</span>
+            <form method="post" action="{% url 'core:shopping_toggle' item.pk %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Вернуть в список">↩️</button>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+{% endblock %}

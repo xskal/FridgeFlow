@@ -3,6 +3,8 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
 from .models import PantryItem, Ingredient
 from datetime import date, timedelta
+from .models import ShoppingListItem
+
 
 class CustomUserCreationForm(UserCreationForm):
     """Форма регистрации"""
@@ -47,3 +49,22 @@ class PantryItemForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Установим минимальную дату - сегодня
         self.fields['expiry_date'].widget.attrs['min'] = date.today().isoformat()
+
+class ShoppingListItemForm(forms.ModelForm):
+    """Форма ручного добавления в список покупок"""
+    ingredient = forms.ModelChoiceField(
+        queryset=Ingredient.objects.all(),
+        label='Продукт',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    quantity = forms.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        min_value=0.01,
+        label='Количество',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'})
+    )
+
+    class Meta:
+        model = ShoppingListItem
+        fields = ['ingredient', 'quantity']
