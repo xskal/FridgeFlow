@@ -29,4 +29,7 @@ urlpatterns = [
     path('meal-plan/add/', views.meal_plan_add, name='meal_plan_add'),
     path('meal-plan/delete/<int:pk>/', views.meal_plan_delete, name='meal_plan_delete'),
     path('meal-plan/generate/', views.meal_plan_generate_shopping, name='meal_plan_generate_shopping'),
+
+    # Аналитика
+    path('analytics/', views.analytics, name='analytics'),
 ]

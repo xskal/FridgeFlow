@@ -1,0 +1,80 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Аналитика - FridgeFlow{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h1>📊 Аналитика питания</h1>
+    <p class="lead">Статистика расходов и питания</p>
+</div>
+
+<!-- Общая статистика -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body text-center">
+                <h2>{{ total_spent|floatformat:0 }} ₽</h2>
+                <p class="mb-0">Всего потрачено</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body text-center">
+                <h2>{{ total_items_purchased }}</h2>
+                <p class="mb-0">Продуктов куплено</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body text-center">
+                <h2>{{ total_meals_planned }}</h2>
+                <p class="mb-0">Блюд запланировано</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body text-center">
+                <h2>{{ total_calories|floatformat:0 }}</h2>
+                <p class="mb-0">Ккал за неделю</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Графики -->
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                {{ expenses_graph|safe }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                {{ macros_graph|safe }}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                {{ top_graph|safe }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+{% endblock %}

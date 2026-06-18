@@ -9,6 +9,10 @@ from .forms import (
     CustomUserCreationForm, CustomAuthenticationForm, 
     PantryItemForm, ShoppingListItemForm, MealPlanForm
 )
+from decimal import Decimal
+import plotly.graph_objs as go
+import plotly.offline as op
+from django.db.models import Sum, Count
 
 
 def recipe_list(request):
@@ -55,24 +59,23 @@ def user_logout(request):
 @login_required(login_url='/login/')
 def pantry_list(request):
     """Список продуктов в холодильнике"""
-    # Получаем все продукты пользователя
+    today = date.today()
+    
     pantry_items = PantryItem.objects.filter(user=request.user).select_related('ingredient')
     
-    # Сортируем: сначала истекающие
     pantry_items = pantry_items.order_by('expiry_date')
     
-    # Продукты, которые истекают через 2 дня или меньше
     expiring_soon = pantry_items.filter(
-        expiry_date__lte=date.today() + timedelta(days=2)
+        expiry_date__lte=today + timedelta(days=2)
     )
     
-    # Просроченные продукты
-    expired = pantry_items.filter(expiry_date__lt=date.today())
+    expired = pantry_items.filter(expiry_date__lt=today)
     
     context = {
         'pantry_items': pantry_items,
         'expiring_soon': expiring_soon,
         'expired': expired,
+        'today': today,  # 👈 Добавь это!
     }
     return render(request, 'core/pantry.html', context)
 
@@ -382,3 +385,165 @@ def meal_plan_generate_shopping(request):
         return redirect('core:shopping_list')
     
     return redirect('core:meal_plan')
+
+@login_required(login_url='/login/')
+def analytics(request):
+    """Аналитика с графиками"""
+    user = request.user
+    
+    # === 1. РАСХОДЫ ПО НЕДЕЛЯМ ===
+    # Получаем купленные продукты за последние 4 недели
+    today = date.today()
+    weeks_data = []
+    week_labels = []
+    
+    for i in range(4):
+        week_start = today - timedelta(weeks=i+1)
+        week_end = today - timedelta(weeks=i)
+        
+        # Считаем расходы за неделю
+        purchased_items = ShoppingListItem.objects.filter(
+            user=user,
+            is_purchased=True,
+            added_date__range=[week_start, week_end]
+        ).select_related('ingredient')
+        
+        week_cost = sum(
+            float(item.quantity) * float(item.ingredient.price_per_unit)
+            for item in purchased_items
+        )
+        
+        weeks_data.append(week_cost)
+        week_labels.append(f'{week_start.strftime("%d.%m")} - {week_end.strftime("%d.%m")}')
+    
+    weeks_data.reverse()
+    week_labels.reverse()
+    
+    # Создаём график расходов
+    expenses_fig = go.Figure(data=[
+        go.Bar(
+            x=week_labels,
+            y=weeks_data,
+            marker_color='#0d6efd',
+            text=[f'{cost:.0f} ₽' for cost in weeks_data],
+            textposition='auto'
+        )
+    ])
+    expenses_fig.update_layout(
+        title='Расходы на питание по неделям',
+        xaxis_title='Неделя',
+        yaxis_title='Расходы (₽)',
+        template='plotly_white',
+        height=400
+    )
+    expenses_graph = op.plot(expenses_fig, output_type='div', include_plotlyjs=False)
+    
+    # === 2. КБЖУ ЗА НЕДЕЛЮ ===
+    # Получаем план питания на текущую неделю
+    start_of_week = today - timedelta(days=today.weekday())
+    end_of_week = start_of_week + timedelta(days=6)
+    
+    meal_plans = MealPlan.objects.filter(
+        user=user,
+        date__range=[start_of_week, end_of_week]
+    ).select_related('recipe')
+    
+    total_protein = 0
+    total_fat = 0
+    total_carbs = 0
+    total_calories = 0
+    
+    for plan in meal_plans:
+        for recipe_ing in plan.recipe.ingredients.all():
+            ing = recipe_ing.ingredient
+            # КБЖУ на 100г, нужно пересчитать на количество
+            quantity_grams = float(recipe_ing.quantity) * 100  # предполагаем, что количество в 100г
+            multiplier = quantity_grams / 100
+            
+            total_protein += float(ing.protein) * multiplier * plan.servings_planned
+            total_fat += float(ing.fat) * multiplier * plan.servings_planned
+            total_carbs += float(ing.carbs) * multiplier * plan.servings_planned
+            total_calories += ing.calories * multiplier * plan.servings_planned
+    
+    # Круговая диаграмма КБЖУ
+    macros_fig = go.Figure(data=[
+        go.Pie(
+            labels=['Белки', 'Жиры', 'Углеводы'],
+            values=[total_protein, total_fat, total_carbs],
+            marker_colors=['#28a745', '#ffc107', '#dc3545'],
+            textinfo='label+percent',
+            hoverinfo='label+value'
+        )
+    ])
+    macros_fig.update_layout(
+        title=f'КБЖУ за неделю (всего {total_calories:.0f} ккал)',
+        template='plotly_white',
+        height=400
+    )
+    macros_graph = op.plot(macros_fig, output_type='div', include_plotlyjs=False)
+    
+    # === 3. ТОП ПРОДУКТОВ ПО СТОИМОСТИ ===
+    # Получаем все купленные продукты
+    purchased_items = ShoppingListItem.objects.filter(
+        user=user,
+        is_purchased=True
+    ).select_related('ingredient')
+    
+    # Группируем по ингредиентам и считаем общую стоимость
+    ingredient_costs = {}
+    for item in purchased_items:
+        ing_name = item.ingredient.name
+        cost = float(item.quantity) * float(item.ingredient.price_per_unit)
+        
+        if ing_name not in ingredient_costs:
+            ingredient_costs[ing_name] = 0
+        ingredient_costs[ing_name] += cost
+    
+    # Сортируем и берём топ-10
+    sorted_ingredients = sorted(ingredient_costs.items(), key=lambda x: x[1], reverse=True)[:10]
+    
+    top_names = [item[0] for item in sorted_ingredients]
+    top_costs = [item[1] for item in sorted_ingredients]
+    
+    # Горизонтальный барчарт
+    top_fig = go.Figure(data=[
+        go.Bar(
+            y=top_names,
+            x=top_costs,
+            orientation='h',
+            marker_color='#17a2b8',
+            text=[f'{cost:.0f} ₽' for cost in top_costs],
+            textposition='auto'
+        )
+    ])
+    top_fig.update_layout(
+        title='Топ-10 продуктов по стоимости',
+        xaxis_title='Стоимость (₽)',
+        yaxis_title='Продукт',
+        template='plotly_white',
+        height=500,
+        yaxis={'autorange': 'reversed'}
+    )
+    top_graph = op.plot(top_fig, output_type='div', include_plotlyjs=False)
+    
+    # === 4. ОБЩАЯ СТАТИСТИКА ===
+    total_spent = sum(
+        float(item.quantity) * float(item.ingredient.price_per_unit)
+        for item in purchased_items
+    )
+    
+    total_items_purchased = purchased_items.count()
+    
+    total_meals_planned = meal_plans.count()
+    
+    context = {
+        'expenses_graph': expenses_graph,
+        'macros_graph': macros_graph,
+        'top_graph': top_graph,
+        'total_spent': total_spent,
+        'total_items_purchased': total_items_purchased,
+        'total_meals_planned': total_meals_planned,
+        'total_calories': total_calories,
+    }
+    
+    return render(request, 'core/analytics.html', context)
