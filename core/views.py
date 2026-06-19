@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Sum, F
+from django.db.models import Sum, F, Count
 from datetime import date, timedelta
 from .models import PantryItem, Recipe, RecipeIngredient, ShoppingListItem, MealPlan
 from .forms import (
@@ -12,7 +12,6 @@ from .forms import (
 from decimal import Decimal
 import plotly.graph_objs as go
 import plotly.offline as op
-from django.db.models import Sum, Count
 
 
 def recipe_list(request):
@@ -24,7 +23,6 @@ def recipe_detail(request, pk):
     return render(request, 'core/recipe_detail.html', {'recipe': recipe})
 
 def register(request):
-    """Регистрация пользователя"""
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
@@ -37,7 +35,6 @@ def register(request):
     return render(request, 'core/register.html', {'form': form})
 
 def user_login(request):
-    """Вход пользователя"""
     if request.method == 'POST':
         form = CustomAuthenticationForm(request, data=request.POST)
         if form.is_valid():
@@ -51,14 +48,12 @@ def user_login(request):
 
 @login_required(login_url='/login/')
 def user_logout(request):
-    """Выход пользователя"""
     logout(request)
     messages.info(request, 'Вы вышли из системы.')
     return redirect('core:recipe_list')
 
 @login_required(login_url='/login/')
 def pantry_list(request):
-    """Список продуктов в холодильнике"""
     today = date.today()
     
     pantry_items = PantryItem.objects.filter(user=request.user).select_related('ingredient')
@@ -75,13 +70,12 @@ def pantry_list(request):
         'pantry_items': pantry_items,
         'expiring_soon': expiring_soon,
         'expired': expired,
-        'today': today,  # 👈 Добавь это!
+        'today': today,
     }
     return render(request, 'core/pantry.html', context)
 
 @login_required(login_url='/login/')
 def pantry_add(request):
-    """Добавление продукта в холодильник"""
     if request.method == 'POST':
         form = PantryItemForm(request.POST)
         if form.is_valid():
@@ -124,14 +118,11 @@ def pantry_delete(request, pk):
 
 @login_required(login_url='/login/')
 def shopping_list(request):
-    """Список покупок пользователя"""
     items = ShoppingListItem.objects.filter(user=request.user).select_related('ingredient')
     
-    # Разделяем на купленные и нет
     not_purchased = items.filter(is_purchased=False).order_by('ingredient__category')
     purchased = items.filter(is_purchased=True).order_by('-added_date')
     
-    # Группируем по категориям
     categories = {}
     for item in not_purchased:
         cat = item.ingredient.get_category_display()
@@ -139,7 +130,6 @@ def shopping_list(request):
             categories[cat] = []
         categories[cat].append(item)
     
-    # Считаем общую стоимость
     total_cost = sum(
         float(item.quantity) * float(item.ingredient.price_per_unit) 
         for item in not_purchased
@@ -155,7 +145,6 @@ def shopping_list(request):
 
 @login_required(login_url='/login/')
 def shopping_add(request):
-    """Ручное добавление в список покупок"""
     if request.method == 'POST':
         form = ShoppingListItemForm(request.POST)
         if form.is_valid():
@@ -170,7 +159,6 @@ def shopping_add(request):
 
 @login_required(login_url='/login/')
 def shopping_toggle(request, pk):
-    """Переключить статус куплено/не куплено"""
     item = get_object_or_404(ShoppingListItem, pk=pk, user=request.user)
     item.is_purchased = not item.is_purchased
     item.save()
@@ -178,7 +166,6 @@ def shopping_toggle(request, pk):
 
 @login_required(login_url='/login/')
 def shopping_delete(request, pk):
-    """Удалить из списка покупок"""
     item = get_object_or_404(ShoppingListItem, pk=pk, user=request.user)
     if request.method == 'POST':
         item.delete()
@@ -188,9 +175,7 @@ def shopping_delete(request, pk):
 
 @login_required(login_url='/login/')
 def shopping_generate(request):
-    """Генерация списка покупок из холодильника (истекающие/просроченные)"""
     if request.method == 'POST':
-        # Находим продукты, которые истекают через 2 дня или уже просрочены
         expiring_items = PantryItem.objects.filter(
             user=request.user,
             expiry_date__lte=date.today() + timedelta(days=2)
@@ -198,7 +183,6 @@ def shopping_generate(request):
         
         added_count = 0
         for pantry_item in expiring_items:
-            # Проверяем, нет ли уже этого продукта в списке покупок (не купленного)
             exists = ShoppingListItem.objects.filter(
                 user=request.user,
                 ingredient=pantry_item.ingredient,
@@ -224,7 +208,6 @@ def shopping_generate(request):
 
 @login_required(login_url='/login/')
 def shopping_clear_purchased(request):
-    """Удалить все купленные продукты"""
     if request.method == 'POST':
         count = ShoppingListItem.objects.filter(user=request.user, is_purchased=True).count()
         ShoppingListItem.objects.filter(user=request.user, is_purchased=True).delete()
@@ -235,24 +218,20 @@ def shopping_clear_purchased(request):
 @login_required(login_url='/login/')
 def meal_plan(request):
     """План питания на неделю"""
-    # Получаем текущую неделю (понедельник - воскресенье)
     today = date.today()
     start_of_week = today - timedelta(days=today.weekday())  # Понедельник
     end_of_week = start_of_week + timedelta(days=6)  # Воскресенье
     
-    # Получаем все планы пользователя на эту неделю
     meal_plans = MealPlan.objects.filter(
         user=request.user,
         date__range=[start_of_week, end_of_week]
     ).select_related('recipe').order_by('date', 'meal_type')
     
-    # Группируем по дням
     days = []
     for i in range(7):
         current_date = start_of_week + timedelta(days=i)
         day_plans = meal_plans.filter(date=current_date)
         
-        # Создаём структуру для каждого приёма пищи
         day_data = {
             'date': current_date,
             'day_name': current_date.strftime('%A'),
@@ -263,12 +242,10 @@ def meal_plan(request):
         }
         days.append(day_data)
     
-    # Считаем общую стоимость ингредиентов на неделю
     total_cost = 0
     for plan in meal_plans:
         for ingredient in plan.recipe.ingredients.all():
             quantity_needed = float(ingredient.quantity) * plan.servings_planned
-            # Проверяем, есть ли в холодильнике
             pantry = PantryItem.objects.filter(
                 user=request.user,
                 ingredient=ingredient.ingredient,
@@ -320,19 +297,16 @@ def meal_plan_delete(request, pk):
 
 @login_required(login_url='/login/')
 def meal_plan_generate_shopping(request):
-    """Сгенерировать список покупок из плана питания"""
     if request.method == 'POST':
         today = date.today()
         start_of_week = today - timedelta(days=today.weekday())
         end_of_week = start_of_week + timedelta(days=6)
         
-        # Получаем все планы на неделю
         meal_plans = MealPlan.objects.filter(
             user=request.user,
             date__range=[start_of_week, end_of_week]
         ).select_related('recipe')
         
-        # Собираем все необходимые ингредиенты
         needed_ingredients = {}
         
         for plan in meal_plans:
@@ -347,7 +321,6 @@ def meal_plan_generate_shopping(request):
                     }
                 needed_ingredients[ing.id]['quantity'] += quantity_needed
         
-        # Вычитаем то, что есть в холодильнике
         pantry_items = PantryItem.objects.filter(
             user=request.user,
             expiry_date__gte=today
@@ -357,11 +330,9 @@ def meal_plan_generate_shopping(request):
             if pantry_item.ingredient.id in needed_ingredients:
                 needed_ingredients[pantry_item.ingredient.id]['quantity'] -= float(pantry_item.quantity)
         
-        # Создаём элементы списка покупок
         added_count = 0
         for ing_id, data in needed_ingredients.items():
             if data['quantity'] > 0:
-                # Проверяем, нет ли уже в списке
                 exists = ShoppingListItem.objects.filter(
                     user=request.user,
                     ingredient=data['ingredient'],
@@ -369,11 +340,9 @@ def meal_plan_generate_shopping(request):
                 ).first()
                 
                 if exists:
-                    # Обновляем количество
                     exists.quantity += Decimal(str(data['quantity']))
                     exists.save()
                 else:
-                    # Создаём новый
                     ShoppingListItem.objects.create(
                         user=request.user,
                         ingredient=data['ingredient'],
@@ -391,8 +360,6 @@ def analytics(request):
     """Аналитика с графиками"""
     user = request.user
     
-    # === 1. РАСХОДЫ ПО НЕДЕЛЯМ ===
-    # Получаем купленные продукты за последние 4 недели
     today = date.today()
     weeks_data = []
     week_labels = []
@@ -401,7 +368,6 @@ def analytics(request):
         week_start = today - timedelta(weeks=i+1)
         week_end = today - timedelta(weeks=i)
         
-        # Считаем расходы за неделю
         purchased_items = ShoppingListItem.objects.filter(
             user=user,
             is_purchased=True,
@@ -419,7 +385,6 @@ def analytics(request):
     weeks_data.reverse()
     week_labels.reverse()
     
-    # Создаём график расходов
     expenses_fig = go.Figure(data=[
         go.Bar(
             x=week_labels,
@@ -439,8 +404,6 @@ def analytics(request):
     
     expenses_graph = op.plot(expenses_fig, output_type='div', include_plotlyjs='cdn')
    
-    # === 2. КБЖУ ЗА НЕДЕЛЮ ===
-    # Получаем план питания на текущую неделю
     start_of_week = today - timedelta(days=today.weekday())
     end_of_week = start_of_week + timedelta(days=6)
     
@@ -457,8 +420,7 @@ def analytics(request):
     for plan in meal_plans:
         for recipe_ing in plan.recipe.ingredients.all():
             ing = recipe_ing.ingredient
-            # КБЖУ на 100г, нужно пересчитать на количество
-            quantity_grams = float(recipe_ing.quantity) * 100  # предполагаем, что количество в 100г
+            quantity_grams = float(recipe_ing.quantity) * 100
             multiplier = quantity_grams / 100
             
             total_protein += float(ing.protein) * multiplier * plan.servings_planned
@@ -466,7 +428,6 @@ def analytics(request):
             total_carbs += float(ing.carbs) * multiplier * plan.servings_planned
             total_calories += ing.calories * multiplier * plan.servings_planned
     
-    # Круговая диаграмма КБЖУ
     macros_fig = go.Figure(data=[
         go.Pie(
             labels=['Белки', 'Жиры', 'Углеводы'],
@@ -482,14 +443,11 @@ def analytics(request):
         height=400
     )
     macros_graph = op.plot(macros_fig, output_type='div', include_plotlyjs='cdn')
-    # === 3. ТОП ПРОДУКТОВ ПО СТОИМОСТИ ===
-    # Получаем все купленные продукты
     purchased_items = ShoppingListItem.objects.filter(
         user=user,
         is_purchased=True
     ).select_related('ingredient')
     
-    # Группируем по ингредиентам и считаем общую стоимость
     ingredient_costs = {}
     for item in purchased_items:
         ing_name = item.ingredient.name
@@ -499,13 +457,11 @@ def analytics(request):
             ingredient_costs[ing_name] = 0
         ingredient_costs[ing_name] += cost
     
-    # Сортируем и берём топ-10
     sorted_ingredients = sorted(ingredient_costs.items(), key=lambda x: x[1], reverse=True)[:10]
     
     top_names = [item[0] for item in sorted_ingredients]
     top_costs = [item[1] for item in sorted_ingredients]
     
-    # Горизонтальный барчарт
     top_fig = go.Figure(data=[
         go.Bar(
             y=top_names,
@@ -526,7 +482,6 @@ def analytics(request):
     )
     top_graph = op.plot(top_fig, output_type='div', include_plotlyjs='cdn')     
     
-    # === 4. ОБЩАЯ СТАТИСТИКА ===
     total_spent = sum(
         float(item.quantity) * float(item.ingredient.price_per_unit)
         for item in purchased_items

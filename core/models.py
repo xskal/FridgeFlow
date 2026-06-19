@@ -2,10 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 
-# --- СПРАВОЧНИКИ ---
-
 class Ingredient(models.Model):
-    """Базовый справочник продуктов"""
     CATEGORY_CHOICES = [
         ('vegetables', 'Овощи и зелень'),
         ('fruits', 'Фрукты и ягоды'),
@@ -47,7 +44,6 @@ class Ingredient(models.Model):
 
 
 class Recipe(models.Model):
-    """Карточка блюда"""
     DIFFICULTY_CHOICES = [
         ('easy', 'Легко'),
         ('medium', 'Средне'),
@@ -71,7 +67,6 @@ class Recipe(models.Model):
 
 
 class RecipeIngredient(models.Model):
-    """Связка рецепта и ингредиента (с количеством)"""
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='ingredients', verbose_name='Рецепт')
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='used_in_recipes', verbose_name='Продукт')
     quantity = models.DecimalField('Количество', max_digits=10, decimal_places=2, validators=[MinValueValidator(0.01)])
@@ -85,10 +80,7 @@ class RecipeIngredient(models.Model):
         return f"{self.ingredient.name} для {self.recipe.name}"
 
 
-# --- ПЛАНИРОВАНИЕ И УЧЕТ ---
-
 class MealPlan(models.Model):
-    """План питания на конкретный день"""
     MEAL_TYPE_CHOICES = [
         ('breakfast', 'Завтрак'),
         ('lunch', 'Обед'),
@@ -113,7 +105,6 @@ class MealPlan(models.Model):
 
 
 class PantryItem(models.Model):
-    """Остатки в холодильнике (виртуальный холодильник)"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='pantry_items', verbose_name='Пользователь')
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='pantry_items', verbose_name='Продукт')
     quantity = models.DecimalField('Количество', max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
@@ -129,7 +120,6 @@ class PantryItem(models.Model):
 
 
 class ShoppingListItem(models.Model):
-    """Список покупок"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shopping_list', verbose_name='Пользователь')
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='shopping_items', verbose_name='Продукт')
     quantity = models.DecimalField('Количество', max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])

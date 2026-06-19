@@ -6,7 +6,6 @@ from .models import Ingredient, PantryItem, ShoppingListItem, Recipe, MealPlan
 
 
 class CustomUserCreationForm(UserCreationForm):
-    """Форма регистрации"""
     email = forms.EmailField(required=True, label='Email')
     
     class Meta:
@@ -17,12 +16,10 @@ class CustomUserCreationForm(UserCreationForm):
         }
 
 class CustomAuthenticationForm(AuthenticationForm):
-    """Форма входа"""
     username = forms.CharField(label='Имя пользователя', widget=forms.TextInput(attrs={'class': 'form-control'}))
     password = forms.CharField(label='Пароль', widget=forms.PasswordInput(attrs={'class': 'form-control'}))
 
 class PantryItemForm(forms.ModelForm):
-    """Форма добавления продукта в холодильник"""
     ingredient = forms.ModelChoiceField(
         queryset=Ingredient.objects.all(),
         label='Продукт',
@@ -50,7 +47,6 @@ class PantryItemForm(forms.ModelForm):
         self.fields['expiry_date'].widget.attrs['min'] = date.today().isoformat()
 
 class ShoppingListItemForm(forms.ModelForm):
-    """Форма ручного добавления в список покупок"""
     ingredient = forms.ModelChoiceField(
         queryset=Ingredient.objects.all(),
         label='Продукт',
@@ -69,7 +65,6 @@ class ShoppingListItemForm(forms.ModelForm):
         fields = ['ingredient', 'quantity']
 
 class MealPlanForm(forms.ModelForm):
-    """Форма планирования приёма пищи"""
     recipe = forms.ModelChoiceField(
         queryset=Recipe.objects.all(),
         label='Блюдо',
